@@ -8,22 +8,22 @@ import lejos.robotics.subsumption.Behavior;
 import lejos.utility.Delay;
 
 /**
- * Behavior that follows a line.
+ * Behavior that follows a line on a bridge.
  * @author johan
  *
  */
-public class FollowLine implements Behavior{
+public class Bridge implements Behavior{
 	boolean suppressed;
 	
 	EV3GyroSensor gyro;
 	EV3ColorSensor color;
 	
 	final double THRESHOLD = 0.15;
-	final int SPEED = 150;
-	final double WHITE = 0.3;		
-	final double BLACK = 0.05;	
+	final int SPEED = 300;
+	final double WHITE = 0.5;	
+	final double BLACK = 0;	
 	
-	public FollowLine(EV3ColorSensor color, EV3GyroSensor gyro)
+	public Bridge(EV3ColorSensor color, EV3GyroSensor gyro)
 	{
 		suppressed = false;
 		this.color = color;
@@ -34,8 +34,8 @@ public class FollowLine implements Behavior{
 	public boolean takeControl() 
 	{
 //		return true;
-		float sampleColor = readColorRedMode();
-		return sampleColor > THRESHOLD;
+		float sampleGyro = readGyroAngle();
+		return Math.abs(sampleGyro) >= 20 ;
 	}
 	
 	@Override
@@ -110,8 +110,6 @@ public class FollowLine implements Behavior{
 	public void action() 
 	{
 		unsuppress();
-		
-//		turnLeft();
 
 		//Color values
 		double avgThreshold = avgThreshold(WHITE, BLACK);
@@ -119,6 +117,7 @@ public class FollowLine implements Behavior{
 		
 		//PID-controller values
 		double Kp = 1000; 		//change
+
 		
 		while (!suppressed) {
 			float newSample = readColorRedMode();
@@ -131,33 +130,34 @@ public class FollowLine implements Behavior{
 			//Normal PID-controller behavior
 			int correction = (int) (Kp * newError);
 
-			
 //			//Turn faster if outside Bounds
 			double lowerBound = 0.10; //0.35 * avgThreshold;
-			double upperBound = 0.25; //1.35 * avgThreshold;
+			double upperBound = 0.40; //1.35 * avgThreshold;
 			
-//			motorsSpeed(SPEED + correction, SPEED - correction);
-//			motorsForward();
+			motorsSpeed(SPEED + correction, SPEED - correction);
+			Motor.A.backward();
+			Motor.C.forward();
+			motorsForward();
 			
-			if (avgSample < lowerBound)
-			{
-				//Turn right if on black
-				motorsSpeed(SPEED + correction, SPEED - correction);
-				Motor.C.backward();
-				Motor.A.forward();
-			}
-//			else if (avgSample >= upperBound)
+//			if (avgSample < lowerBound)
+//			{
+//				//Turn right if on black
+//				motorsSpeed(SPEED + correction, SPEED - correction);
+//				Motor.C.backward();
+//				Motor.A.forward();
+//			}
+//			if (avgSample >= upperBound)
 //			{
 //				//Turn left if on middle of tape
 //				motorsSpeed(SPEED - correction, SPEED + correction);
 //				Motor.A.backward();
-//				Motor.C.backward();
+//				Motor.C.forward();
 //			}
-			else
-			{
-				motorsSpeed(SPEED + correction, SPEED - correction);
-				motorsForward();
-			}
+//			else
+//			{
+//				motorsSpeed(SPEED + correction, SPEED - correction);
+//				motorsForward();
+//			}
 		}
 		motorsStop();
 	}
