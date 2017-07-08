@@ -6,6 +6,7 @@ import lejos.hardware.ev3.EV3;
 import lejos.hardware.motor.Motor;
 import lejos.hardware.sensor.EV3ColorSensor;
 import lejos.hardware.sensor.EV3GyroSensor;
+import lejos.hardware.sensor.EV3TouchSensor;
 import lejos.hardware.sensor.EV3UltrasonicSensor;
 import lejos.robotics.SampleProvider;
 import lejos.robotics.subsumption.Behavior;
@@ -19,6 +20,7 @@ import lejos.utility.Stopwatch;
 public class FindPillar implements Behavior{
 	boolean suppressed;
 	boolean inRange = false;
+	boolean pressed = false;
 	
 	String previousturn = "right";
 	int time = 100;
@@ -30,6 +32,7 @@ public class FindPillar implements Behavior{
 	SampleProvider gyro;
 	SampleProvider sonic;
 	SampleProvider colorID;
+	EV3TouchSensor touch;
 	
 	final double THRESHOLD = 0.01;
 	final int SPEED = 25;
@@ -38,7 +41,7 @@ public class FindPillar implements Behavior{
 	
 	
 	
-	public FindPillar(EV3GyroSensor gyro, EV3ColorSensor color, EV3UltrasonicSensor sonic) 
+	public FindPillar(EV3TouchSensor touch, EV3GyroSensor gyro, EV3ColorSensor color, EV3UltrasonicSensor sonic) 
 	{
 		suppressed = false;
 //		this.sonic = sonic;
@@ -48,12 +51,19 @@ public class FindPillar implements Behavior{
 		this.gyro = gyro.getAngleMode();
 		this.sonic = sonic.getDistanceMode();
 		this.colorID = color.getColorIDMode();
+		this.touch = touch;
 	}
 	
 	@Override
 	public boolean takeControl() 
 	{
-		return true;
+		System.out.println(readTouch());
+		if(readTouch() == 1)
+		{
+			return true;
+		}
+		return pressed;
+//		return true;
 //		float sampleGyro = readGyroAngle();
 //		return Math.abs(sampleGyro) >= 450 ;
 	}
@@ -76,6 +86,14 @@ public class FindPillar implements Behavior{
 		gyro.fetchSample(sample, 0);
 		return sample[0];
 	} 
+	
+	public float readTouch()
+	{
+		float[] sample = new float[1];
+		SampleProvider sampleProvider = touch.getTouchMode();
+		touch.fetchSample(sample, 0);
+		return sample[0];
+	}
 	
 	public float readUltraSonic()
 	{
@@ -134,6 +152,8 @@ public class FindPillar implements Behavior{
 	@Override
 	public void action() {
 		unsuppress();
+		
+		pressed = true;
 		
 		System.out.println("FindPillar");
 		

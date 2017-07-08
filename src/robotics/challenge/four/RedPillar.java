@@ -23,17 +23,19 @@ public class RedPillar implements Behavior{
 	
 	EV3UltrasonicSensor sonic;
 	EV3ColorSensor color;
+	EV3GyroSensor gyro;
 	
 	final double THRESHOLD = 0.15;
 	final int SPEED = 200;
 	final int RED = 0;
 	final int BLUE = 2;
 	
-	public RedPillar(EV3ColorSensor color, EV3UltrasonicSensor sonic) 
+	public RedPillar(EV3ColorSensor color, EV3UltrasonicSensor sonic, EV3GyroSensor gyro) 
 	{
 		suppressed = false;
 		this.sonic = sonic;
 		this.color = color;
+		this.gyro = gyro;
 	}
 	
 	@Override
@@ -113,6 +115,7 @@ public class RedPillar implements Behavior{
 	
 	@Override
 	public void action() {
+		gyro.reset();
 		unsuppress();
 		playSound();
 		turnRight();

@@ -1,8 +1,12 @@
 package robotics.challenge.four;
 
+import lejos.hardware.Audio;
+import lejos.hardware.BrickFinder;
+import lejos.hardware.ev3.EV3;
 import lejos.hardware.motor.Motor;
 import lejos.hardware.sensor.EV3ColorSensor;
 import lejos.hardware.sensor.EV3GyroSensor;
+import lejos.hardware.sensor.EV3TouchSensor;
 import lejos.robotics.SampleProvider;
 import lejos.robotics.subsumption.Behavior;
 import lejos.utility.Delay;
@@ -14,28 +18,32 @@ import lejos.utility.Delay;
  */
 public class FollowLine implements Behavior{
 	boolean suppressed;
+	boolean bridgeDown = false;
 	
 	EV3GyroSensor gyro;
 	EV3ColorSensor color;
+	EV3TouchSensor touch;
+
 	
 	final double THRESHOLD = 0.15;
 	final int SPEED = 150;
 	final double WHITE = 0.3;		
 	final double BLACK = 0.05;	
 	
-	public FollowLine(EV3ColorSensor color, EV3GyroSensor gyro)
+	public FollowLine(EV3TouchSensor touch, EV3ColorSensor color, EV3GyroSensor gyro)
 	{
 		suppressed = false;
 		this.color = color;
 		this.gyro = gyro;
+		this.touch = touch;
 	}
 	
 	@Override
 	public boolean takeControl() 
 	{
-//		return true;
-		float sampleColor = readColorRedMode();
-		return sampleColor > THRESHOLD;
+		return true;
+//		float sampleColor = readColorRedMode();
+//		return sampleColor > THRESHOLD;
 	}
 	
 	@Override
@@ -54,6 +62,14 @@ public class FollowLine implements Behavior{
 		float[] sample = new float[1];
 		SampleProvider sampleProvider = color.getRedMode();
 		sampleProvider.fetchSample(sample, 0);
+		return sample[0];
+	}
+	
+	public float readTouch()
+	{
+		float[] sample = new float[1];
+		SampleProvider sampleProvider = touch.getTouchMode();
+		touch.fetchSample(sample, 0);
 		return sample[0];
 	}
 	
@@ -106,6 +122,13 @@ public class FollowLine implements Behavior{
 		motorsStop();
 	}
 	
+	public void playSound()
+	{
+		EV3 ev3 = (EV3) BrickFinder.getDefault();
+		Audio audio = ev3.getAudio();
+		audio.systemSound(0);
+	}
+	
 	@Override
 	public void action() 
 	{
@@ -121,6 +144,21 @@ public class FollowLine implements Behavior{
 		double Kp = 1000; 		//change
 		
 		while (!suppressed) {
+//			float angle = readGyroAngle();
+//			System.out.println(angle + " " + Challenge4.bridgeCrossed);
+//			if(angle <= -8)
+//			{
+////				playSound();
+//				bridgeDown = true;
+//			}
+//			if(bridgeDown && angle >= -2)
+//			{
+//				playSound();
+//				Challenge4.bridgeCrossed = true;
+//				bridgeDown = false;
+//				gyro.reset();
+//			}
+			
 			float newSample = readColorRedMode();
 			float avgSample = (float) ((newSample + lastSample) / 2);
 			lastSample = newSample;

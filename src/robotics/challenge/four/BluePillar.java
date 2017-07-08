@@ -9,6 +9,7 @@ import lejos.hardware.sensor.EV3GyroSensor;
 import lejos.hardware.sensor.EV3UltrasonicSensor;
 import lejos.robotics.SampleProvider;
 import lejos.robotics.subsumption.Behavior;
+import lejos.utility.Delay;
 
 /**
  * Behavior that does an action when close to a blue pillar.
@@ -22,8 +23,7 @@ public class BluePillar implements Behavior{
 	
 	EV3UltrasonicSensor sonic;
 	EV3ColorSensor color;
-	
-	
+	EV3GyroSensor gyro;
 	
 	final double THRESHOLD = 0.20;
 	final int SPEED = 200;
@@ -32,11 +32,12 @@ public class BluePillar implements Behavior{
 	final double WHITE = 0.3;		
 	final double BLACK = 0.05;	
 	
-	public BluePillar(EV3ColorSensor color, EV3UltrasonicSensor sonic) 
+	public BluePillar(EV3ColorSensor color, EV3UltrasonicSensor sonic, EV3GyroSensor gyro) 
 	{
 		suppressed = false;
 		this.sonic = sonic;
 		this.color = color;
+		this.gyro = gyro;
 	}
 	
 	@Override
@@ -116,13 +117,71 @@ public class BluePillar implements Behavior{
 		Motor.C.setSpeed(speedC);
 	}
 	
+	public void turnRight()
+	{
+		motorsSpeed(SPEED,SPEED);
+		Motor.C.backward();
+		Motor.A.forward();
+		Delay.msDelay(2000);
+		motorsStop();
+	}
+	
 	@Override
 	public void action() {
 		//Start maze
 		pillarFound = true;
-		
+		gyro.reset();
 		unsuppress();
-		playSound();
+		
+		turnRight();
+
+		//Color values
+		double avgThreshold = avgThreshold(WHITE, BLACK);
+		double lastSample = readColorRedMode();
+		
+		//PID-controller values
+		double Kp = 1000; 		//change
+		
+		while (!suppressed) {
+			float newSample = readColorRedMode();
+			float avgSample = (float) ((newSample + lastSample) / 2);
+			lastSample = newSample;
+			
+			//PID-controller calculations
+			double newError = avgThreshold - avgSample;
+			
+			//Normal PID-controller behavior
+			int correction = (int) (Kp * newError);
+
+			
+//			//Turn faster if outside Bounds
+			double lowerBound = 0.10; //0.35 * avgThreshold;
+			double upperBound = 0.25; //1.35 * avgThreshold;
+			
+//			motorsSpeed(SPEED + correction, SPEED - correction);
+//			motorsForward();
+			
+			if (avgSample < lowerBound)
+			{
+				//Turn right if on black
+				motorsSpeed(SPEED + correction, SPEED - correction);
+				Motor.C.backward();
+				Motor.A.forward();
+			}
+//			else if (avgSample >= upperBound)
+//			{
+//				//Turn left if on middle of tape
+//				motorsSpeed(SPEED - correction, SPEED + correction);
+//				Motor.A.backward();
+//				Motor.C.backward();
+//			}
+			else
+			{
+				motorsSpeed(SPEED + correction, SPEED - correction);
+				motorsForward();
+			}
+		}
+		motorsStop();
 		
 
 	}

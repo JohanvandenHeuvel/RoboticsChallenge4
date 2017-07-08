@@ -1,5 +1,8 @@
 package robotics.challenge.four;
 
+import lejos.hardware.Audio;
+import lejos.hardware.BrickFinder;
+import lejos.hardware.ev3.EV3;
 import lejos.hardware.motor.Motor;
 import lejos.hardware.sensor.EV3ColorSensor;
 import lejos.hardware.sensor.EV3GyroSensor;
@@ -9,10 +12,10 @@ import lejos.utility.Delay;
 
 /**
  * Behavior that follows a line on a bridge.
- * @author johan
+ * @author johan 
  *
  */
-public class Bridge implements Behavior{
+public class BridgeUp implements Behavior{
 	boolean suppressed;
 	
 	EV3GyroSensor gyro;
@@ -23,7 +26,7 @@ public class Bridge implements Behavior{
 	final double WHITE = 0.5;	
 	final double BLACK = 0;	
 	
-	public Bridge(EV3ColorSensor color, EV3GyroSensor gyro)
+	public BridgeUp(EV3ColorSensor color, EV3GyroSensor gyro)
 	{
 		suppressed = false;
 		this.color = color;
@@ -34,8 +37,8 @@ public class Bridge implements Behavior{
 	public boolean takeControl() 
 	{
 //		return true;
-		float sampleGyro = readGyroAngle();
-		return Math.abs(sampleGyro) >= 20 ;
+		float sampleGyro = readGyroRate();
+		return sampleGyro <= -10 ; //FILL IN
 	}
 	
 	@Override
@@ -56,6 +59,14 @@ public class Bridge implements Behavior{
 		sampleProvider.fetchSample(sample, 0);
 		return sample[0];
 	}
+	
+	public float readGyroRate()
+	{
+		float[] sample = new float[1];
+		SampleProvider sampleprovider = gyro.getRateMode();
+		sampleprovider.fetchSample(sample, 0);
+		return sample[0];
+	} 
 	
 	public float readGyroAngle()
 	{
@@ -106,59 +117,18 @@ public class Bridge implements Behavior{
 		motorsStop();
 	}
 	
+	public void playSound()
+	{
+		EV3 ev3 = (EV3) BrickFinder.getDefault();
+		Audio audio = ev3.getAudio();
+		audio.systemSound(0);
+	}
+	
 	@Override
 	public void action() 
 	{
 		unsuppress();
-
-		//Color values
-		double avgThreshold = avgThreshold(WHITE, BLACK);
-		double lastSample = readColorRedMode();
-		
-		//PID-controller values
-		double Kp = 1000; 		//change
-
-		
-		while (!suppressed) {
-			float newSample = readColorRedMode();
-			float avgSample = (float) ((newSample + lastSample) / 2);
-			lastSample = newSample;
-			
-			//PID-controller calculations
-			double newError = avgThreshold - avgSample;
-			
-			//Normal PID-controller behavior
-			int correction = (int) (Kp * newError);
-
-//			//Turn faster if outside Bounds
-			double lowerBound = 0.10; //0.35 * avgThreshold;
-			double upperBound = 0.40; //1.35 * avgThreshold;
-			
-			motorsSpeed(SPEED + correction, SPEED - correction);
-			Motor.A.backward();
-			Motor.C.forward();
-			motorsForward();
-			
-//			if (avgSample < lowerBound)
-//			{
-//				//Turn right if on black
-//				motorsSpeed(SPEED + correction, SPEED - correction);
-//				Motor.C.backward();
-//				Motor.A.forward();
-//			}
-//			if (avgSample >= upperBound)
-//			{
-//				//Turn left if on middle of tape
-//				motorsSpeed(SPEED - correction, SPEED + correction);
-//				Motor.A.backward();
-//				Motor.C.forward();
-//			}
-//			else
-//			{
-//				motorsSpeed(SPEED + correction, SPEED - correction);
-//				motorsForward();
-//			}
-		}
-		motorsStop();
+		gyro.reset();
+		playSound();
 	}
 }
